@@ -1,0 +1,11 @@
+*** About LLM:
+- "Instruction fine-tuning" to have better conservation.
+- Take time 10-13s, need improve (use smaller model?).
+
+*** Embedding and re-rank:
+- Can fine-tuning embedding model (BERT, SBERT -- bi-encoder)
+- Can fine-tuning re-rank model (cross encoder)
+
+*Requirements:
+## Complex pdf loader
+langchain_community

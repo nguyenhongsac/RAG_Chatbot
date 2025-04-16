@@ -1,41 +1,115 @@
-from langchain_community.document_loaders import WebBaseLoader
+import os
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-import bs4
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
-def indexing(loader, embeddings, stored_path):
+def indexing(input_path, text_splitter=None, embeddings_model=None, stored_path=None):
     """
+    Indexing and save document for indexing/ingestion pineline.
+
+    Args:
+        input_path (string): A file or link to load document.
+        text_splitter (TextSplitter): A model to split documents to chunks.
+        embeddings (EmbeddingModel): An embedding model to embed chunks. 
+        stored_path (string): A persist directory for saving vector in chromadb.
+    
+    Returns:
+        None
     """
-    # Vector store
-    vector_store = Chroma(embedding_function=embeddings, persist_directory=stored_path)
+    docs = load_document(input=input_path)
+    if docs == []:
+        print("No documents for indexing!")
+        return
+    
+    if text_splitter is None:
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
+    if embeddings_model is None:
+        # embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2") #768 dim
+        embeddings_model = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")  #384 dim
+    if stored_path is None:
+        stored_path = r"E:\Data\chromadb\eb"
 
-    # Loading
-    docs = loader.load()
-
-    # Chunking
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
+    vector_store = Chroma(embedding_function=embeddings_model, persist_directory=stored_path)
     all_splits = text_splitter.split_documents(docs)
-
-    # Index chunks
     _ = vector_store.add_documents(documents=all_splits)
 
-# Select embedding models
-from langchain_huggingface import HuggingFaceEmbeddings
-# embeddings1 = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2") #768 dim
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2") #384 dim
+    print(f"[SUCCESS] Ingested {len(all_splits)} chunks. Data saved to: {stored_path}")
 
-stored_path = r"E:\Data\chromadb\eb"
 
-# Load and chunk contents of the blog
-loader = WebBaseLoader(
-    web_paths=("https://sict.haui.edu.vn/vn/html/bo-may-to-chuc","https://sict.haui.edu.vn/vn/html/thong-tin-chung"),
-    # bs_kwargs=dict(
-    #     parse_only=bs4.SoupStrainer(
-    #         class_=("post-content", "post-title", "post-header")
-    #     )
-    # ),
+from langchain_community.document_loaders import (
+    WebBaseLoader, UnstructuredPDFLoader, UnstructuredWordDocumentLoader, UnstructuredCSVLoader, UnstructuredExcelLoader,
+    UnstructuredPowerPointLoader, UnstructuredHTMLLoader, TextLoader, JSONLoader
 )
 
-indexing(loader=loader, embeddings=embeddings, stored_path=stored_path)
+from youtube_transcript_api import YouTubeTranscriptApi
+from langchain.schema import Document
 
-print("Ingestion data done!")
+def load_document(input):
+    """
+    Define which type of input.
+    """
+    if input is None or input == "":
+        return []
+    if input.startswith("https://www.youtube.com"):
+        return load_audio_video(link=input)
+    elif input.startswith("http://") or input.startswith("https://"):
+        return load_weblink(link=input)
+    else:
+        return load_file(file_path=input)
+
+
+def load_file(file_path, language="eng"):
+    """
+    Extract list of document from file.
+
+    Args:
+        input_path (string): file path.
+    Returns:
+        List[Documents]: list of documents.
+    """
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == ".pdf":
+        loader = UnstructuredPDFLoader(file_path, strategy="hi_res", languages=[language])
+    elif ext == ".docx":
+        loader = UnstructuredWordDocumentLoader(file_path, strategy="hi_res", languages=[language])
+    elif ext == ".pptx":
+        loader = UnstructuredPowerPointLoader(file_path, strategy="hi_res", languages=[language])
+    elif ext == ".html":
+        loader = UnstructuredHTMLLoader(file_path)
+    elif ext == ".txt":
+        loader = TextLoader(file_path, encoding="utf-8")
+    elif ext == ".csv":
+        loader = UnstructuredCSVLoader(file_path=file_path)
+    elif ext == ".json":
+        loader = JSONLoader(file_path=file_path, jq_schema=".content", text_content=False)
+    elif ext == ".xlsx":
+        loader = UnstructuredExcelLoader(file_path=file_path)
+    else:
+        print("Unsupported file format:", ext)
+        return []
+
+    return loader.load()
+    
+
+def load_weblink(link=None):
+    """
+    Extract documents from website.
+    """
+    loader = WebBaseLoader(web_paths=(link))
+    return loader.load()
+
+def load_audio_video(link=None):
+    """
+    Extract documents from video/youtube.
+    """
+    try:
+        video_id = link.split("v=")[1]
+        transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=("en", "vi"))
+        doc = " ".join(snippet["text"] for snippet in transcript_list)
+
+        docs = []
+        docs.append(Document(page_content=doc, metadata={"source": link}))
+        return docs
+    except Exception as e:
+        print(f"Error loading YouTube video: {e}")
+        return []
