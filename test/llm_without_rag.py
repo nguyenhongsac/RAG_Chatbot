@@ -10,11 +10,17 @@ from typing_extensions import List, TypedDict
 import os
 import getpass
 
-# LLM
-if not os.environ.get("GROQ_API_KEY"):
-  os.environ["GROQ_API_KEY"] = getpass.getpass("Enter API key for Groq: ")
-from langchain.chat_models import init_chat_model
-llm = init_chat_model("llama3-8b-8192", model_provider="groq")
+from langchain_together import ChatTogether
+
+from dotenv import load_dotenv
+load_dotenv()
+
+llm = ChatTogether(
+  model="deepseek-ai/DeepSeek-V3",
+  temperature=0,
+  max_tokens=None,
+  timeout=None
+)
 
 # Define prompt for question-answering
 from langchain.prompts import PromptTemplate

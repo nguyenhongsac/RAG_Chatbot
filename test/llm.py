@@ -6,15 +6,22 @@ from typing_extensions import List, TypedDict
 import os
 import getpass
 
+
+from dotenv import load_dotenv
+load_dotenv()
+
 # LLM
 '''
 > Enter groq API to get available LLM models (change LLM model later).
 > Use init_chat_model from langchain to init that llm model as chatbot.
 '''
-if not os.environ.get("GROQ_API_KEY"):
-  os.environ["GROQ_API_KEY"] = getpass.getpass("Enter API key for Groq: ")
-from langchain.chat_models import init_chat_model
-llm = init_chat_model("llama3-8b-8192", model_provider="groq")
+from langchain_together import ChatTogether
+llm = ChatTogether(
+    model="deepseek-ai/DeepSeek-V3",
+    temperature=0,
+    max_tokens=None,
+    timeout=None
+  )
 
 
 # Select embedding models
@@ -22,7 +29,7 @@ llm = init_chat_model("llama3-8b-8192", model_provider="groq")
 > Init embedding model - same as indexing pineline.
 '''
 from langchain_huggingface import HuggingFaceEmbeddings
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2") # 384 dim
 
 
 # Vector store
