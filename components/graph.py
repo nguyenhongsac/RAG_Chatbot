@@ -2,8 +2,7 @@ from langgraph.graph import START, StateGraph
 from typing import List, TypedDict
 from langchain_core.documents import Document
 
-from components.init_models import vector_store, rerank_model, llm
-from components.prompts import prompt
+from components.rag_pipeline import vector_store, rerank_model, llm, prompt
 
 # Define state for application
 class State(TypedDict):

@@ -1,5 +1,5 @@
 import os
-import components.indexing as indexing
+import components.indexing_pipeline as indexing_pipeline
 from langchain_community.document_loaders import WebBaseLoader, UnstructuredPDFLoader
 import re
 from langchain_chroma import Chroma
@@ -19,7 +19,7 @@ vector_store = Chroma(embedding_function=embeddings, persist_directory=r"E:\Data
 
 
 from langchain_community.document_loaders import BSHTMLLoader
-from Test_LLM import retrieve
+from llm_test import retrieve
 
 if __name__ == "__main__":
 

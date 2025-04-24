@@ -104,6 +104,17 @@ body {
 #input-container button:hover {
     background: #357ABD;
 }
+.message.bot p {
+    margin: 0.4em 0;
+}
+.message.bot ul {
+    margin: 0.4em 0 0.4em 1.2em;
+    padding: 0;
+    list-style: disc;
+}
+.message.bot li {
+    margin: 0.2em 0;
+}
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }

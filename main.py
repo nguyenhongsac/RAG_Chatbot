@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from components.graph import graph
 
+# RUN WITH LANGGRAPH
+
 app = FastAPI()
 
 app.add_middleware(
@@ -24,5 +26,6 @@ async def chat_endpoint(request: ChatRequest):
     response = graph.invoke({"question": request.question})
     return {"answer": response["answer"]}
 
-# To run:
-# uvicorn {script_name}:app --reload
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
