@@ -1,5 +1,23 @@
 const apiUrl = 'http://127.0.0.1:8000/chat';
 
+function escapeHTML(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatMarkup(text) {
+    const esc = escapeHTML(text);
+    return esc
+      // strong/bold
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      // italic
+      .replace(/\*(.+?)\*/g, '<i>$1</i>');
+}
+
 function renderBotResponse(rawText) {
     const wrapper = document.createElement('div');
     wrapper.classList.add('message', 'bot');
@@ -10,25 +28,25 @@ function renderBotResponse(rawText) {
     lines.forEach(line => {
         const trimmed = line.trim();
         if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-        // start a UL if we haven’t already
-        if (!ul) {
-            ul = document.createElement('ul');
-            wrapper.appendChild(ul);
-        }
-        const li = document.createElement('li');
-        li.textContent = trimmed.substring(2).trim();
-        ul.appendChild(li);
+            // start a UL if we haven’t already
+            if (!ul) {
+                ul = document.createElement('ul');
+                wrapper.appendChild(ul);
+            }
+            const li = document.createElement('li');
+            li.innerHTML = formatMarkup(trimmed.substring(2).trim());
+            ul.appendChild(li);
         }
         else if (trimmed === '') {
-        // blank line → add a <br> or just skip
-        wrapper.appendChild(document.createElement('br'));
+            // blank line → add a <br> or just skip
+            wrapper.appendChild(document.createElement('br'));
         }
         else {
-        // normal paragraph
-        const p = document.createElement('p');
-        p.textContent = line;
-        wrapper.appendChild(p);
-        ul = null;  // close any open list
+            // normal paragraph
+            const p = document.createElement('p');
+            p.innerHTML = formatMarkup(line);
+            wrapper.appendChild(p);
+            ul = null;  // close any open list
         }
     });
 

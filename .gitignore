@@ -1,2 +1,4 @@
 #misc
 .env
+viewer.py
+data/

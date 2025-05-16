@@ -1,33 +1,29 @@
 import logging
 from typing import List, AsyncGenerator
 from langchain_core.documents import Document
-from langchain_together import ChatTogether
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from mxbai_rerank import MxbaiRerankV2
-from langchain.prompts import PromptTemplate
 from pydantic_settings import BaseSettings
+from components.llm_model import DeepSeekLLM
+
+import time
 
 class Settings(BaseSettings):
-    LLM_MODEL: str = "deepseek-ai/DeepSeek-V3"
     EMBEDDINGS_MODEL: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    CHROMA_PERSIST_DIR: str = r"E:\Data\chromadb"
     RERANK_MODEL: str = "mixedbread-ai/mxbai-rerank-base-v2"
+    CHROMA_PERSIST_DIR: str = r"E:\Data\chromadb"
+    DEEPSEEK_API_KEY: str
 
     class Config:
         env_file = ".env"
 
 settings = Settings()
-
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-llm = ChatTogether(
-    model=settings.LLM_MODEL,
-    temperature=0,
-    max_tokens=None,
-    timeout=None
-)
+llm = DeepSeekLLM(api_key=settings.DEEPSEEK_API_KEY)
 
 embeddings = HuggingFaceEmbeddings(model_name=settings.EMBEDDINGS_MODEL)
 
@@ -36,15 +32,10 @@ vector_store = Chroma(embedding_function=embeddings, persist_directory=settings.
 rerank_model = MxbaiRerankV2(settings.RERANK_MODEL)
 
 # Define a Vietnamese prompt
-prompt_template = """Bạn là một chatbot hỏi đáp thông minh. Hãy cung cấp câu trả lời chính xác dựa trên dữ liệu liên quan. Nếu bạn không biết câu trả lời, chỉ cần nói không biết. 
-Phản hồi bằng tiếng Việt một cách tự nhiên, trình bày khoa học. Không lặp lại câu hỏi của người dùng.
-
-Câu hỏi: {question}
-
+prompt = """Câu hỏi: {question}
 Dữ liệu liên quan:
 {context}
 """
-prompt = PromptTemplate.from_template(prompt_template)
 
 
 class RAGService:
@@ -63,22 +54,32 @@ class RAGService:
         return retrieved_docs
 
     async def ask(self, question: str) -> dict:
+        t1 = time.time()
         docs = self.retriever.invoke(question)
+        t2 = time.time()
+        logger.info(f"[RETRIEVE] Vector search: {t2 - t1}s")
+
         top_docs = self._rerank_docs(question, docs)
+        t3 = time.time()
+        logger.info(f"[RETRIEVE] Rerank: {t3 - t2}s")
+
         context = "\n\n".join(d.page_content for d in top_docs)
-        messages = prompt.invoke({"question": question, "context": context})
+        messages = f"Câu hỏi: {question}. Dữ liệu liên quan:{context}"
 
         response = llm.invoke(messages)
+        t4 = time.time()
+        logger.info(f"[LLM] Response: {t4 - t3}s, TOTAL: {t4 - t1}")
         return {
             "answer": response.content,
             "sources": [d.metadata for d in top_docs]
         }
 
+# Change later
     async def ask_stream(self, question: str) -> AsyncGenerator[str, None]:
         docs = self.retriever.invoke(question)
         top_docs = self._rerank_docs(question, docs)
         context = "\n\n".join(d.page_content for d in top_docs)
-        prompt = prompt.invoke({"question": question, "context": context})
+        prompt = f"Câu hỏi: {question}. Dữ liệu liên quan:{context}"
 
         # Stream‐in tokens
         async for token in llm.stream(prompt):
