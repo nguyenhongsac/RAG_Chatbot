@@ -31,16 +31,9 @@ vector_store = Chroma(embedding_function=embeddings, persist_directory=settings.
 
 rerank_model = MxbaiRerankV2(settings.RERANK_MODEL)
 
-# Define a Vietnamese prompt
-prompt = """Câu hỏi: {question}
-Dữ liệu liên quan:
-{context}
-"""
-
-
 class RAGService:
     def __init__(self):
-        self.retriever = vector_store.as_retriever(search_kwargs={"k": 30})
+        self.retriever = vector_store.as_retriever(search_kwargs={"k": 5})
 
     def _rerank_docs(self, question: str, docs: List[Document]) -> List[Document]:
         texts = [d.page_content for d in docs]
@@ -74,14 +67,13 @@ class RAGService:
             "sources": [d.metadata for d in top_docs]
         }
 
-# Change later
     async def ask_stream(self, question: str) -> AsyncGenerator[str, None]:
         docs = self.retriever.invoke(question)
-        top_docs = self._rerank_docs(question, docs)
-        context = "\n\n".join(d.page_content for d in top_docs)
+        # top_docs = self._rerank_docs(question, docs)
+        context = "\n\n".join(d.page_content for d in docs)
         prompt = f"Câu hỏi: {question}. Dữ liệu liên quan:{context}"
 
         # Stream‐in tokens
-        async for token in llm.stream(prompt):
+        async for token in llm.ainvoke(prompt):
             # SSE formatting
             yield f"data: {token}\n\n"

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from components.graph import graph
 
@@ -25,6 +26,12 @@ async def chat_endpoint(request: ChatRequest):
     # Invoke the graph with the question
     response = graph.invoke({"question": request.question})
     return {"answer": response["answer"]}
+
+# @app.post("chat-stream")
+# async def chat_stream(request: ChatRequest):
+#     return StreamingResponse(
+#         graph.invoke()
+#     )
 
 if __name__ == "__main__":
     import uvicorn

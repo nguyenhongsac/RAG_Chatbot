@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Security
 from fastapi.security.api_key import APIKeyHeader
-from starlette.responses import StreamingResponse
+from fastapi.responses import StreamingResponse
 from components.rag_pipeline import RAGService
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,13 +17,6 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, OPTIONS, etc.)
     allow_headers=["*"],  # Allow all headers
 )
-
-# api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
-# async def get_api_key(api_key: str = Security(api_key_header)):
-#     if api_key != Settings.API_KEY:
-#         logger.warning("Invalid API key: %s", api_key)
-#         raise HTTPException(403, "Invalid API key")
-#     return api_key
 
 rag = RAGService()
 
