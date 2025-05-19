@@ -1,17 +1,19 @@
 import logging
+
 from typing import List, AsyncGenerator
 from langchain_core.documents import Document
+from pydantic_settings import BaseSettings
+
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
-from mxbai_rerank import MxbaiRerankV2
-from pydantic_settings import BaseSettings
 from components.llm_model import DeepSeekLLM
+from components.rerank_model import RerankModel
 
 import time
 
 class Settings(BaseSettings):
     EMBEDDINGS_MODEL: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    RERANK_MODEL: str = "mixedbread-ai/mxbai-rerank-base-v2"
+    # RERANK_MODEL: str = "AITeamVN/Vietnamese_Reranker"
     CHROMA_PERSIST_DIR: str = r"E:\Data\chromadb"
     DEEPSEEK_API_KEY: str
 
@@ -25,25 +27,25 @@ logger = logging.getLogger(__name__)
 
 llm = DeepSeekLLM(api_key=settings.DEEPSEEK_API_KEY)
 
-embeddings = HuggingFaceEmbeddings(model_name=settings.EMBEDDINGS_MODEL)
+embeddings = HuggingFaceEmbeddings(model_name=settings.EMBEDDINGS_MODEL, model_kwargs={"device": "cpu"})
 
 vector_store = Chroma(embedding_function=embeddings, persist_directory=settings.CHROMA_PERSIST_DIR)
 
-rerank_model = MxbaiRerankV2(settings.RERANK_MODEL)
+rerank_model = RerankModel()
 
 class RAGService:
     def __init__(self):
-        self.retriever = vector_store.as_retriever(search_kwargs={"k": 5})
+        self.retriever = vector_store.as_retriever(search_kwargs={"k": 30})
 
     def _rerank_docs(self, question: str, docs: List[Document]) -> List[Document]:
         texts = [d.page_content for d in docs]
         doc_map = {doc.page_content: doc for doc in docs}
         # get top_k 
-        res = rerank_model.rank(query=question, documents=texts, top_k=5, return_documents=True)
+        res = rerank_model.rank(query=question, documents=texts, top_k=5)
         retrieved_docs = []
         for text in res:
-            if text.document in doc_map:
-                retrieved_docs.append(doc_map[text.document])
+            if text in doc_map:
+                retrieved_docs.append(doc_map[text])
         return retrieved_docs
 
     async def ask(self, question: str) -> dict:
@@ -63,14 +65,14 @@ class RAGService:
         t4 = time.time()
         logger.info(f"[LLM] Response: {t4 - t3}s, TOTAL: {t4 - t1}")
         return {
-            "answer": response.content,
+            "answer": response,
             "sources": [d.metadata for d in top_docs]
         }
 
     async def ask_stream(self, question: str) -> AsyncGenerator[str, None]:
         docs = self.retriever.invoke(question)
-        # top_docs = self._rerank_docs(question, docs)
-        context = "\n\n".join(d.page_content for d in docs)
+        top_docs = self._rerank_docs(question, docs)
+        context = "\n\n".join(d.page_content for d in top_docs)
         prompt = f"Câu hỏi: {question}. Dữ liệu liên quan:{context}"
 
         # Stream‐in tokens

@@ -19,7 +19,7 @@ vector_store = Chroma(embedding_function=embeddings, persist_directory=r"E:\Data
 
 
 from langchain_community.document_loaders import BSHTMLLoader
-from llm_test import retrieve
+from test.llm_test import retrieve
 
 if __name__ == "__main__":
 

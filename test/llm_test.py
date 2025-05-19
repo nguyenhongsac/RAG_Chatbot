@@ -4,6 +4,8 @@ import os
 load_dotenv()
 from openai import OpenAI
 import time
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
@@ -30,7 +32,7 @@ client = OpenAI(api_key=os.getenv("DEEPSEEK_API_KEY"), base_url="https://api.dee
 stream = client.chat.completions.create(
     model="deepseek-chat",
     messages=[
-        {"role": "system", "content": "Bạn là một chatbot hỏi đáp thông minh. Hãy trả lời chính xác dựa trên dữ liệu liên quan. Nếu bạn không biết câu trả lời, chỉ cần nói không biết. Không lặp lại câu hỏi."},
+        {"role": "system", "content": "Bạn là một chatbot hỏi đáp thông minh. Hãy trả lời chính xác dựa trên dữ liệu liên quan. Nếu bạn không biết câu trả lời, chỉ cần nói không biết. Không dẫn dắt, mở rộng"},
         {"role": "user", "content": message},
     ],
     stream=True

@@ -1,10 +1,10 @@
 *** About LLM:
 - "Instruction fine-tuning" to have better conservation.
-- Take time 10-13s, need improve: stream mode incomplete
 
 *** Embedding and re-rank:
 - Can fine-tuning embedding model (BERT, SBERT -- bi-encoder)
 - Can fine-tuning re-rank model (cross encoder)
+- Too much time for local GPU processing both embedding and rerank
 
 *** Indexing:
 - Need trim data before processing.
