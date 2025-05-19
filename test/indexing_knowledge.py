@@ -19,11 +19,10 @@ vector_store = Chroma(embedding_function=embeddings, persist_directory=r"E:\Data
 
 
 from langchain_community.document_loaders import BSHTMLLoader
-from test.llm_test import retrieve
 
 if __name__ == "__main__":
 
-    # path = r"E:\Data\File\pdf"
+    path = r"E:\Data\File\pdf"
     # for f in os.listdir(path=path):
     #     file_path = path + '/' + f
     #     indexing.indexing(input_path=file_path, language="vie")
@@ -38,6 +37,3 @@ if __name__ == "__main__":
     
     # for link in weblink:
     #     indexing.indexing(input_path=link)
-
-    docs = retrieve(query="Hiệu trưởng là ai?")
-    print(docs)
