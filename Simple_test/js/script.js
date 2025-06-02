@@ -1,4 +1,3 @@
-const apiUrl = 'http://127.0.0.1:8000/chat';
 
 function escapeHTML(str) {
   return str
@@ -55,7 +54,7 @@ function renderBotResponse(rawText) {
 
 function handleKeyPress(event) {
     if (event.key === "Enter") {
-        sendMessage();
+        sendAMessage();
     }
 }
 
@@ -65,7 +64,7 @@ function sendMessage() {
 
     addUserMessage('user', userInput);
 
-    fetch(apiUrl, {
+    fetch('http://127.0.0.1:8000/chat', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -106,6 +105,9 @@ function sendAMessage() {
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let buffer = '';
+        let fullAnswer = '';
+
+        // Bot message container
         let botContainer = document.createElement('div');
         botContainer.classList.add('message', 'bot');
         document.getElementById('messages').appendChild(botContainer);
@@ -124,6 +126,7 @@ function sendAMessage() {
             for (const part of parts) {
                 if (part.startsWith("data: ")) {
                     const text = part.slice(6);
+                    fullAnswer += text;
                     const span = document.createElement('span');
                     span.innerHTML = formatMarkup(text);
                     botContainer.appendChild(span);
@@ -134,15 +137,39 @@ function sendAMessage() {
 
         if (buffer && buffer.startsWith("data: ")) {
             const text = buffer.slice(6);
+            fullAnswer += text;
             const span = document.createElement('span');
             span.innerHTML = formatMarkup(text);
             botContainer.appendChild(span);
         }
 
+        // Save message
+        saveMessage(userInput, fullAnswer);
     })
     .catch(error => {
         console.error('Error:', error);
         addMessage('bot', 'Sorry, something went wrong.');
+    });
+}
+
+function saveMessage(question, answer) {
+    fetch('http://localhost:3001/api/message', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            question: question, 
+            answer: answer 
+        })
+    }).then(async (response) => {
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to save message: ${errorText}`); 
+        }
+        console.log("Message is saved!");
+    }).catch(error => {
+        console.error('Error:', error);
     });
 }
 
