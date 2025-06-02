@@ -70,12 +70,23 @@ class RAGService:
         }
 
     async def ask_stream(self, question: str) -> AsyncGenerator[str, None]:
+        t1 = time.time()
         docs = self.retriever.invoke(question)
+        t2 = time.time()
+        logger.info(f"[RETRIEVE] Vector search: {t2 - t1}s")
+
         top_docs = self._rerank_docs(question, docs)
+        t3 = time.time()
+        logger.info(f"[RETRIEVE] Rerank: {t3 - t2}s")
+
         context = "\n\n".join(d.page_content for d in top_docs)
         prompt = f"Câu hỏi: {question}. Dữ liệu liên quan:{context}"
 
-        # Stream‐in tokens
-        async for token in llm.ainvoke(prompt):
-            # SSE formatting
-            yield f"data: {token}\n\n"
+        try:
+            # Stream‐in tokens
+            async for token in llm.ainvoke(prompt):
+                # SSE formatting
+                yield f"data: {token}\n\n"
+        finally:
+            t4 = time.time()
+            logger.info(f"[LLM] Response: {t4 - t3}s, TOTAL: {t4 - t1}")

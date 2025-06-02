@@ -37,10 +37,14 @@ async def chat_endpoint(req: ChatRequest):
 
 @app.post("/chat-stream")
 async def chat_stream(req: ChatRequest):
-    return StreamingResponse(
-        rag.ask_stream(req.question),
-        media_type="text/event-stream"
-    )
+    try:
+        return StreamingResponse(
+            rag.ask_stream(req.question),
+            media_type="text/event-stream"
+        )
+    except Exception:
+        logging.exception("Chat stream error")
+        raise HTTPException(500, "Internal Server Error")
 
 if __name__ == "__main__":
     import uvicorn

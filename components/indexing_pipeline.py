@@ -27,7 +27,6 @@ def indexing(input_path, language=None, text_splitter=None, embeddings_model=Non
     if text_splitter is None:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
     if embeddings_model is None:
-        # embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2") #768 dim
         embeddings_model = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")  #384 dim
     if stored_path is None:
         stored_path = r"E:\Data\chromadb"
