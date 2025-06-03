@@ -81,12 +81,18 @@ class RAGService:
 
         context = "\n\n".join(d.page_content for d in top_docs)
         prompt = f"Câu hỏi: {question}. Dữ liệu liên quan:{context}"
+        logger.info(f"[LLM] Prompt len: {len(prompt)}")
 
         try:
-            # Stream‐in tokens
+            # Stream from the LLM and wrap every token in SSE syntax
             async for token in llm.ainvoke(prompt):
-                # SSE formatting
+                # Each SSE item:
+                #   * starts with “data: ”
+                #   * ends with “\n\n” (blank line)
                 yield f"data: {token}\n\n"
+            # When the stream is finished, send an explicit “done” event so
+            # the browser knows the answer is complete.
+            yield "event: done\ndata: [DONE]\n\n"
         finally:
             t4 = time.time()
             logger.info(f"[LLM] Response: {t4 - t3}s, TOTAL: {t4 - t1}")

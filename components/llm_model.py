@@ -4,7 +4,7 @@ class DeepSeekLLM():
     """
     A custom llm class
     """
-    prompt_template = "Bạn là một chatbot hỏi đáp thông minh. Hãy trả lời chính xác dựa trên dữ liệu liên quan. Nếu bạn không biết câu trả lời, chỉ cần nói không biết. Trình bày tự nhiên, khoa học. Không lặp lại câu hỏi, không trích dẫn dữ liệu."
+    prompt_template = "Bạn là một chatbot thông minh chuyên hỗ trợ hỏi đáp chính xác dựa trên dữ liệu liên quan. Nếu bạn không biết câu trả lời, chỉ cần nói không biết. Trình bày khoa học, tự nhiên, bố cục hợp lý. Không lặp lại câu hỏi, không trích dẫn dữ liệu."
 
     def __init__(self, api_key: str):
         self.client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")

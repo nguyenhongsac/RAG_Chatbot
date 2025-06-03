@@ -1,3 +1,6 @@
+/*
+    Format text before send
+*/
 
 function escapeHTML(str) {
   return str
@@ -9,78 +12,31 @@ function escapeHTML(str) {
 }
 
 function formatMarkup(text) {
-    const esc = escapeHTML(text);
-    return esc
-      // strong/bold
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      // italic
-      .replace(/\*(.+?)\*/g, '<i>$1</i>');
-}
+    text = escapeHTML(text);
+    // Headings
+    text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    text = text.replace(/^# (.+)$/gm, '<h1>$1</h1>');
 
-function renderBotResponse(rawText) {
-    const wrapper = document.createElement('div');
-    wrapper.classList.add('message', 'bot');
+    // Bold
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
-    const lines = rawText.split('\n');
-    let ul;
+    // Italic
+    text = text.replace(/\*(.+?)\*/g, '<i>$1</i>');
 
-    lines.forEach(line => {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-            // start a UL if we haven’t already
-            if (!ul) {
-                ul = document.createElement('ul');
-                wrapper.appendChild(ul);
-            }
-            const li = document.createElement('li');
-            li.innerHTML = formatMarkup(trimmed.substring(2).trim());
-            ul.appendChild(li);
-        }
-        else if (trimmed === '') {
-            // blank line → add a <br> or just skip
-            wrapper.appendChild(document.createElement('br'));
-        }
-        else {
-            // normal paragraph
-            const p = document.createElement('p');
-            p.innerHTML = formatMarkup(line);
-            wrapper.appendChild(p);
-            ul = null;  // close any open list
-        }
-    });
+    // Lists
+    text = text.replace(/(^|\n)([-*]) (.+)/g, '$1<li>$3</li>');
 
-    return wrapper;
-}
+    // Wrap <li> with <ul> only once (do not nest every list item)
+    text = text.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
 
-function handleKeyPress(event) {
-    if (event.key === "Enter") {
-        sendAMessage();
-    }
-}
+    // Replace double newlines with paragraph breaks
+    text = text.replace(/\n{2,}/g, '<br><br>');
 
-function sendMessage() {
-    const userInput = document.getElementById('user-input').value;
-    if (userInput.trim() === '') return;
+    // Replace single newlines (which are not already replaced) with <br>
+    text = text.replace(/\n/g, '<br>');
 
-    addUserMessage('user', userInput);
-
-    fetch('http://127.0.0.1:8000/chat', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ question: userInput })
-    })
-    .then(response => response.json())
-    .then(data => {
-        addMessage('bot', data.answer);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        addMessage('bot', 'Sorry, something went wrong.');
-    });
-
-    document.getElementById('user-input').value = '';
+    return text;
 }
 
 function sendAMessage() {
@@ -144,32 +100,11 @@ function sendAMessage() {
         }
 
         // Save message
-        saveMessage(userInput, fullAnswer);
+        // saveMessage(userInput, fullAnswer);
     })
     .catch(error => {
         console.error('Error:', error);
         addMessage('bot', 'Sorry, something went wrong.');
-    });
-}
-
-function saveMessage(question, answer) {
-    fetch('http://localhost:3001/api/message', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-            question: question, 
-            answer: answer 
-        })
-    }).then(async (response) => {
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Failed to save message: ${errorText}`); 
-        }
-        console.log("Message is saved!");
-    }).catch(error => {
-        console.error('Error:', error);
     });
 }
 
@@ -185,4 +120,67 @@ function addUserMessage(sender, text) {
     messageContainer.textContent = text;
     document.getElementById('messages').appendChild(messageContainer);
     document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+}
+function handleKeyPress(event) {
+    if (event.key === "Enter") {
+        sendAMessage();
+    }
+}
+function renderBotResponse(rawText) {
+    const wrapper = document.createElement('div');
+    wrapper.classList.add('message', 'bot');
+
+    const lines = rawText.split('\n');
+    let ul;
+
+    lines.forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+            // start a UL if we haven’t already
+            if (!ul) {
+                ul = document.createElement('ul');
+                wrapper.appendChild(ul);
+            }
+            const li = document.createElement('li');
+            li.innerHTML = formatMarkup(trimmed.substring(2).trim());
+            ul.appendChild(li);
+        }
+        else if (trimmed === '') {
+            // blank line → add a <br> or just skip
+            wrapper.appendChild(document.createElement('br'));
+        }
+        else {
+            // normal paragraph
+            const p = document.createElement('p');
+            p.innerHTML = formatMarkup(line);
+            wrapper.appendChild(p);
+            ul = null;  // close any open list
+        }
+    });
+
+    return wrapper;
+}
+function sendMessage() {
+    const userInput = document.getElementById('user-input').value;
+    if (userInput.trim() === '') return;
+
+    addUserMessage('user', userInput);
+
+    fetch('http://127.0.0.1:8000/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ question: userInput })
+    })
+    .then(response => response.json())
+    .then(data => {
+        addMessage('bot', data.answer);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        addMessage('bot', 'Sorry, something went wrong.');
+    });
+
+    document.getElementById('user-input').value = '';
 }
