@@ -90,9 +90,6 @@ class RAGService:
                 #   * starts with “data: ”
                 #   * ends with “\n\n” (blank line)
                 yield f"data: {token}\n\n"
-            # When the stream is finished, send an explicit “done” event so
-            # the browser knows the answer is complete.
-            yield "event: done\ndata: [DONE]\n\n"
         finally:
             t4 = time.time()
             logger.info(f"[LLM] Response: {t4 - t3}s, TOTAL: {t4 - t1}")
