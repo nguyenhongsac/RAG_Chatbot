@@ -25,16 +25,16 @@ function formatMarkup(text) {
     text = text.replace(/\*(.+?)\*/g, '<i>$1</i>');
 
     // Lists
-    text = text.replace(/(^|\n)([-*]) (.+)/g, '$1<li>$3</li>');
+    // text = text.replace(/(^|\n)([-*]) (.+)/g, '$1<li>$3</li>');
 
     // Wrap <li> with <ul> only once (do not nest every list item)
-    text = text.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
+    // text = text.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
 
     // Replace double newlines with paragraph breaks
-    text = text.replace(/\n{2,}/g, '<br><br>');
+    text = text.replace(/\n{2,}/g, "<br><br>");
 
     // Replace single newlines (which are not already replaced) with <br>
-    text = text.replace(/\n/g, '<br>');
+    text = text.replace(/\n/g, "<br>");
 
     return text;
 }
@@ -74,18 +74,38 @@ function sendAMessage() {
             if (done) break;
 
             buffer += decoder.decode(value, { stream: true });
+            // console.log(buffer);
 
             // Process by SSE format (each chunk ends with \n\n)
             const parts = buffer.split("\n\n");
             buffer = parts.pop();  // last incomplete part
 
-            for (const part of parts) {
+            for (let part of parts) {
+                // console.log(part);
+                if (part === "") {
+                    fullAnswer += "\n\n";
+                    botContainer.innerHTML += formatMarkup("\n\n");
+                    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+                    continue;
+                }
+                if (part === "\n") {
+                    fullAnswer += "\n";
+                    botContainer.innerHTML += formatMarkup("\n");
+                    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+                    continue;
+                }
+                if (part.startsWith("\n")) {
+                    fullAnswer += "\n";
+                    botContainer.innerHTML += formatMarkup("\n");
+                    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+                    part = part.trim();
+                }
                 if (part.startsWith("data: ")) {
                     const text = part.slice(6);
+
                     fullAnswer += text;
-                    const span = document.createElement('span');
-                    span.innerHTML = formatMarkup(text);
-                    botContainer.appendChild(span);
+                    botContainer.innerHTML += formatMarkup(text);
+
                     document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
                 }
             }
@@ -93,12 +113,12 @@ function sendAMessage() {
 
         if (buffer && buffer.startsWith("data: ")) {
             const text = buffer.slice(6);
-            fullAnswer += text;
-            const span = document.createElement('span');
-            span.innerHTML = formatMarkup(text);
-            botContainer.appendChild(span);
-        }
 
+            fullAnswer += text;
+            botContainer.innerHTML += formatMarkup(text);
+        }
+        botContainer.innerHTML = formatMarkup(fullAnswer);
+        document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
         // Save message
         // saveMessage(userInput, fullAnswer);
     })
