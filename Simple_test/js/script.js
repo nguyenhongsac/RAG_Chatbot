@@ -146,6 +146,29 @@ function handleKeyPress(event) {
         sendAMessage();
     }
 }
+function saveMessage(question, answer) {
+    /*
+        This will save message to mysql database in local
+    */
+    fetch('http://localhost:3001/api/message', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            question: question, 
+            answer: answer 
+        })
+    }).then(async (response) => {
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to save message: ${errorText}`); 
+        }
+        console.log("Message is saved!");
+    }).catch(error => {
+        console.error('Error:', error);
+    });
+}
 function renderBotResponse(rawText) {
     const wrapper = document.createElement('div');
     wrapper.classList.add('message', 'bot');
